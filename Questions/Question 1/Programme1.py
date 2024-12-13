@@ -1,5 +1,8 @@
 from datetime import datetime
 
+chemin_fichier = "/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 1/evenementSAE_15.ics" 
+
+
 #on ouvre ici le fichier ics
 def lire_fichier_ics(chemin_fichier):
     with open(chemin_fichier, 'r', encoding='utf-8') as fichier:
@@ -39,7 +42,6 @@ def convertir_vers_pseudo_csv(evenement):
     return f"{evenement['uid']};{date};{heure_debut};{duree_formatee};CM;{evenement['intitule']};{evenement['salle']};LACAN DAVID;S1"
 
 def main():
-    chemin_fichier = "/Users/pierrehiltenbrand/Downloads/evenementSAE_15.ics"  # Remplacez par le chemin de votre fichier
     contenu_ics = lire_fichier_ics(chemin_fichier)
     evenement = extraire_evenement_ics(contenu_ics)
     pseudo_csv = convertir_vers_pseudo_csv(evenement)
