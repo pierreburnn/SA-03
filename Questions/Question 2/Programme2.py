@@ -5,6 +5,8 @@ from datetime import datetime
 chemin_fichier_ics = 'Questions/Question 2/ADE_RT1_Septembre2023_Decembre2023.ics'
 ### CHEMMIN DU FICHIER CSV 
 chemin_fichier_csv = 'Questions/Question 2/Fichier de trie.csv'
+chemin_fichier_csv_dans_la_rubrique_question3 = 'Questions/Question 3/Fichier de trie.csv'
+
 
 
 
@@ -93,6 +95,12 @@ with open(chemin_fichier_csv, mode='w', newline='', encoding='utf-8') as fichier
     writer = csv.writer(fichier_csv, delimiter=';') #quand dans le code il y'a une point virgule on change de ligne, on passe à la suivante
     writer.writerow(["UID", "Date", "Heure Début", "Durée", "Modalité", "Intitulé", "Salle", "Professeurs", "Groupes"])
     writer.writerows(tableau_pseudo_csv)
+
+with open(chemin_fichier_csv_dans_la_rubrique_question3, mode='w', newline='', encoding='utf-8') as fichier_csv:
+    writer = csv.writer(fichier_csv, delimiter=';')
+    writer.writerow(["UID", "Date", "Heure Début", "Durée", "Modalité", "Intitulé", "Salle", "Professeurs", "Groupes"])
+    writer.writerows(tableau_pseudo_csv)
+
 
 print(tableau_pseudo_csv)
 
