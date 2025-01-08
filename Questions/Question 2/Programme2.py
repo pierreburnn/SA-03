@@ -2,10 +2,9 @@ import csv
 from datetime import datetime
 
 ### CHEMIN DU FICHIER DE MOODLE 
-chemin_fichier_ics = '/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 2/ADE_RT1_Septembre2023_Decembre2023.ics'
+chemin_fichier_ics = 'Questions/Question 2/ADE_RT1_Septembre2023_Decembre2023.ics'
 ### CHEMMIN DU FICHIER CSV 
-chemin_fichier_csv = '/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 2/Fichier de trie.csv'
-
+chemin_fichier_csv = 'Questions/Question 2/Fichier de trie.csv'
 
 
 
@@ -91,7 +90,7 @@ tableau_pseudo_csv.sort(key=lambda x: (x[1], x[2]))
 ### ON OUVRE OU CRÉER LE FICHIER CSC AVEC "mode = 'w' " ET ON CRÉÉ LES DIFÉRENTES COLLONNES 
 with open(chemin_fichier_csv, mode='w', newline='', encoding='utf-8') as fichier_csv:
 
-    writer = csv.writer(fichier_csv, delimitation=';') #quand dans le code il y'a une point virgule on change de ligne, on passe à la suivante
+    writer = csv.writer(fichier_csv, delimiter=';') #quand dans le code il y'a une point virgule on change de ligne, on passe à la suivante
     writer.writerow(["UID", "Date", "Heure Début", "Durée", "Modalité", "Intitulé", "Salle", "Professeurs", "Groupes"])
     writer.writerows(tableau_pseudo_csv)
 
