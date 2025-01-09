@@ -7,7 +7,7 @@ chemin_fichier_csv = 'Questions/Question 3/Fichier de trie.csv'
 
 ### CHEMIN DU FICHIER GÉNÉRÉ EN SORTIE ###
 chemin_fichier_sortie = 'Questions/Question 3/Seances R107.csv'
-
+chemin_fichier_sortie2= 'Questions/Question 4/Seances R107.csv'
 
 ### Groupe QUE L'ON VEUT FILTRER ###
 groupe_recherche = "B2"  
@@ -69,6 +69,7 @@ filtre_seance = filtrer_seances_r107(tableauCSV, groupe_recherche)
 
 ### ON ÉCRIT LES RESULTATS DANS UN FICHIER CSV ###
 ecrire_tableau_resultat(chemin_fichier_sortie, filtre_seance)
+ecrire_tableau_resultat(chemin_fichier_sortie2, filtre_seance)
 
 
 
