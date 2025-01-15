@@ -11,10 +11,10 @@ import os
 chemin_fichier_csv = 'Questions/Question 4/Seances R107.csv'
 
 ### CHEMIN DU FICHIER GÉNÉRÉ EN SORTIE ###
-chemin_fichier_sortie = '/GraphiqueTP2.png'
+chemin_fichier_sortie = 'Questions\Question 5\GraphiqueTP2.png'
 
 ### CHEMIN DU FICHIER HTML FINAL ###
-chemin_fichier_html = '/Travaux.html'
+chemin_fichier_html = 'Questions\Question 5\Travaux.html'
 
 
 
@@ -56,39 +56,38 @@ def graphique_cercle(nombre_de_cours_par_mois, chemin_fichier_sortie):
     plt.savefig(chemin_fichier_sortie)
 
 
+def generer_tableau_html(df):
 
 
-
-### CRÉER LE FICHIER HTML ###
-def creer_fichier_html(df, nombre_de_cours_par_mois, chemin_fichier_sortie, chemin_fichier_html):
-    tableau_html = generer_tableau_html(df)
-
-    # Créer une fonction pour faire une liste des cours
-
-
-
-
-
+    tableau_html = df.to_html(index=False, 
+                              classes="tableau-seances", 
+                              border=1)
     
-    # Code HTML 
-    contenu_html = f"""
+    return tableau_html
 
+
+
+def creer_fichier_html(df, nombre_de_cours_par_mois, chemin_fichier_sortie, chemin_fichier_html):
+
+    tableau_html = generer_tableau_html(df)
+    
+
+
+
+
+    contenu_html = f"""
 
     <html lang="fr">
     <head>
         <meta charset="UTF-8">
-
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         
         <style>
-
-
             body {{
                 font-family: Arial, sans-serif;
                 color: #333;
                 margin: 40px;
             }}
-
 
             table {{
                 width: 100%;
@@ -96,43 +95,38 @@ def creer_fichier_html(df, nombre_de_cours_par_mois, chemin_fichier_sortie, chem
                 margin-bottom: 30px;
             }}
 
-            
             th, td {{
                 padding: 8px 12px;
                 text-align: center;
                 border: 1px solid #ddd;
             }}
 
-
             th {{
                 background-color: #f4f4f4;
                 color: #333;
             }}
-
 
             img {{
                 display: block;
                 margin: 0 auto;
             }}
         </style>
-
     </head>
     <body>
-        
         <h2>Tableau des Séances de R1.07</h2>
         {tableau_html}
-        
+    </body>
     </html>
-
-
-
     """
-    
-    # On savegarde le code dans un fichier html afin de pouvoir l'ouvrir
+
+
+
+
 
     with open(chemin_fichier_html, 'w', encoding='utf-8') as fichier_html:
-
+        
         fichier_html.write(contenu_html)
+
 
 
 ### ON EXECUTE ICI LES FONCTIONS ###
