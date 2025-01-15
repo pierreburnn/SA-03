@@ -11,10 +11,10 @@ import os
 chemin_fichier_csv = 'Questions/Question 4/Seances R107.csv'
 
 ### CHEMIN DU FICHIER GÉNÉRÉ EN SORTIE ###
-chemin_fichier_sortie = 'Questions\Question 5\GraphiqueTP2.png'
+chemin_fichier_sortie = 'Questions\\Question 5\\GraphiqueTP2.png'
 
 ### CHEMIN DU FICHIER HTML FINAL ###
-chemin_fichier_html = 'Questions\Question 5\Travaux.html'
+chemin_fichier_html = 'Questions\\Question 5\\Travaux.html'
 
 
 
@@ -59,9 +59,9 @@ def graphique_cercle(nombre_de_cours_par_mois, chemin_fichier_sortie):
 def generer_tableau_html(df):
 
 
-    tableau_html = df.to_html(index=False, 
-                              classes="tableau-seances", 
-                              border=1)
+    ### ICI, ON GÈNERE D'ABORD LE TABLEAU EN MARKDOWN PUIS ON LE CONVERTIT EN HTML ###
+    tableau_markdown = df.to_markdown(index=False, tablefmt="pipe")
+    tableau_html = markdown(tableau_markdown, extensions=['tables'])
     
     return tableau_html
 
