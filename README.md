@@ -1,5 +1,8 @@
-# README - SAÉ3
+# Guide d'utilisation des fichiers
 
-## Auteur
-Hiltenbrand--Burianne Pierre  
-Étudiant en réseau et télécommunication
+Vous avez à votre disposition 5 fichiers Python.
+
+Pour copier ces fichiers dans votre ordinateur, vous pouvez exécuter la commande suivante :
+
+```bash
+git clone https://github.com/pierreburnn/SA-03
