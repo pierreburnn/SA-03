@@ -13,99 +13,99 @@ import markdown
 
 
 
-def analyse_fichier(contenu_fichier):
 
 
-    problemes = []
+def analyze_file(file_content):
+
+    issues = []
     
-    ### RECHERHCE DES TRAMES UNE PAR UNE ###
+    
+    ### SEARCH FRAMES ONE BY ONE ###
+    dns_frame = re.finditer(r".*NXDomain.*", file_content, re.MULTILINE)
+    syn_frames = re.finditer(r".*SYN.*", file_content, re.MULTILINE)
+    repeated_frames = re.finditer(r".*5858.*", file_content, re.MULTILINE)
 
-    dns_frame = re.finditer(r".*NXDomain.*", contenu_fichier, re.MULTILINE)
-    syn_frames = re.finditer(r".*SYN.*", contenu_fichier, re.MULTILINE)
-    repeated_frames = re.finditer(r".*5858.*", contenu_fichier, re.MULTILINE)
-
-
-
-    # Stockage de chaque trame
+    # Store each frame
     for frame in dns_frame:
-        problemes.append(["DNS erreur", "Problème de DNS", frame.group(0)])
+        issues.append(["DNS error", "DNS problem", frame.group(0)])
 
     for frame in syn_frames:
-        problemes.append(["SYN Flag", "Drapeau SYN suspect", frame.group(0)])
+        issues.append(["SYN Flag", "Suspicious SYN flag", frame.group(0)])
 
     for frame in repeated_frames:
-        problemes.append(["Répétition", "Données répétées", frame.group(0)])
+        issues.append(["Repetition", "Repeated data", frame.group(0)])
 
-    return problemes
-
-
+    return issues
 
 
-### GENERER UN TABLEAU EXCEL ###
 
-def generer_excel(problemes):
 
+
+
+### GENERATE AN EXCEL TABLE ###
+def generate_excel(issues):
 
     """
-    Sauvegarde des problèmes dans un fichier CSV, en proposant 
-    à l'utilisateur de choisir l'emplacement via une boîte de dialogue.
+    Save issues into a CSV file, allowing 
+    the user to select the location via a dialog box.
     """
-    chemin = filedialog.asksaveasfilename(defaultextension=".csv", 
-                                          filetypes=[("CSV files", "*.csv")])
+    path = filedialog.asksaveasfilename(defaultextension=".csv", 
+                                        filetypes=[("CSV files", "*.csv")])
     
-
-    if chemin:
+    if path:
 
         try:
 
-            df = pd.DataFrame(problemes, columns=["Type", "Description", "Trame"])
+            df = pd.DataFrame(issues, columns=["Type", "Description", "Frame"])
 
-            df.to_csv(chemin, index=False, sep=';', encoding='utf-8-sig')
+            df.to_csv(path, index=False, sep=';', encoding='utf-8-sig')
 
-            messagebox.showinfo("Succès", "Résultats sauvegardés dans un fichier CSV.")
-
+            messagebox.showinfo("Success", "Results saved into a CSV file.")
 
         except Exception as e:
-            messagebox.showerror("Erreur", f"Impossible de sauvegarder le fichier : {e}") 
+            messagebox.showerror("Error", f"Unable to save the file: {e}")
 
 
 
 
 
 
-### SAUVEGARDE DES RÉSULTATS DANS UN FICHIER HTML ###
-def enregistrer_sous_HTML(problemes):
 
+### SAVE RESULTS INTO AN HTML FILE ###
+def save_as_HTML(issues):
 
     """
-    Sauvegarde des résultats dans un fichier HTML, 
-    mais en utilisant la librairie Markdown pour la génération du tableau.
+    Save results into an HTML file, 
+    but using the Markdown library for table generation.
     """
     
 
-    contenu_markdown = "# Résultats de l'analyse TCP\n\n"
-    contenu_markdown += "| Type | Description | Trame |\n"
-    contenu_markdown += "| ---  | ---         | ---   |\n"
+
+    markdown_content = "# TCP Analysis Results\n\n"
+    markdown_content += "| Type | Description | Frame |\n"
+    markdown_content += "| ---  | ---         | ---   |\n"
 
 
 
-    # On ajoute chaque problème dans le tableau Markdown
-    for prob in problemes:
-        contenu_markdown += f"| {prob[0]} | {prob[1]} | {prob[2]} |\n"
+    # Add each issue to the Markdown table
+    for issue in issues:
+        markdown_content += f"| {issue[0]} | {issue[1]} | {issue[2]} |\n"
 
 
 
-    # Conversion du texte Markdown en HTML
-    # On active l'extension 'tables' pour une meilleure gestion des tableaux
 
-    contenu_html_converti = markdown.markdown(contenu_markdown, extensions=['tables'])
+    # Convert the Markdown text into HTML
+    # Enable the 'tables' extension for better table handling
+    html_converted_content = markdown.markdown(markdown_content, extensions=['tables'])
 
 
-    # On va maintenant encapsuler ce contenu HTML dans un squelette 
-    contenu_html_final = f"""
+
+
+    # Encapsulate this HTML content in a skeleton 
+    final_html_content = f"""
     <html>
     <head>
-        <title>Analyse TCP</title>
+        <title>TCP Analysis</title>
         <style>
             body {{ font-family: Arial, sans-serif; margin: 20px; }}
             table {{ border-collapse: collapse; width: 100%; }}
@@ -116,7 +116,7 @@ def enregistrer_sous_HTML(problemes):
         </style>
     </head>
     <body>
-        {contenu_html_converti}
+        {html_converted_content}
     </body>
     </html>
     """
@@ -124,140 +124,127 @@ def enregistrer_sous_HTML(problemes):
 
 
 
+    ### SAVE THE HTML FILE ON THE DESKTOP ###
+    path = os.path.join(os.path.expanduser("~"), "Desktop", "tcp_analysis.html")
 
-    ### SAUVEGARDE DU FICHIER HTML SUR LE BUREAU ###
-    chemin = os.path.join(os.path.expanduser("~"), "Desktop", "analyse_tcp.html")
-
-    with open(chemin, 'w', encoding='utf-8') as f:
-        
-        f.write(contenu_html_final)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(final_html_content)
 
 
-    # On ouvre le fichier HTML dans le navigateur web
-    webbrowser.open('file://' + chemin)
+    # Open the HTML file in the web browser
+    webbrowser.open('file://' + path)
 
 
 
 
 
+def load_file():
 
-
-def chargement_fichier():
-
-    chemin = filedialog.askopenfilename()
-    if chemin:
-
+    path = filedialog.askopenfilename()
+    if path:
 
         try:
 
-            with open(chemin, 'r') as f:
-
-                contenu = f.read()
-                resultats = analyse_fichier(contenu)
-                afficher_resultat(resultats)
-
+            with open(path, 'r') as f:
+                content = f.read()
+                results = analyze_file(content)
+                display_results(results)
 
         except Exception as e:
-            print("Erreur :", e)
+            print("Error:", e)
 
 
 
 
+def display_results(issues):
 
-def afficher_resultat(problemes):
+    results_window = tk.Toplevel()
+    results_window.title("Results")
 
+    def filter_issues(event):
 
-    resultats_fenetre = tk.Toplevel()
-    resultats_fenetre.title("Résultats")
-
-
-
-    def filter_problemes(event):
-        type_selectionner = filtre.get()
+        selected_type = filter_var.get()
         for row in tree.get_children():
             tree.delete(row)
 
 
 
-        for prob in problemes:
+        for issue in issues:
 
-            if type_selectionner == "Tous" or prob[0] == type_selectionner:
-
-                tree.insert("", tk.END, values=prob)
-
+            if selected_type == "All" or issue[0] == selected_type:
+                tree.insert("", tk.END, values=issue)
 
 
 
-    # Ajout des filtres
-    filter_frame = ttk.Frame(resultats_fenetre)
+
+
+    # Add filters
+    filter_frame = ttk.Frame(results_window)
 
     filter_frame.pack(fill=tk.X, padx=10, pady=5)
 
 
 
+    ttk.Label(filter_frame, text="Filter by issue type:").pack(side=tk.LEFT, padx=5)
+    filter_var = tk.StringVar(value="All")
 
-    ttk.Label(filter_frame, text="Filtrer par type de problème :").pack(side=tk.LEFT, padx=5)
-    filtre = tk.StringVar(value="Tous")
-    filter_menu = ttk.Combobox(filter_frame, textvariable=filtre, state="readonly")
-    filter_menu['values'] = ["Tous"] + list(set(prob[0] for prob in problemes))
+    filter_menu = ttk.Combobox(filter_frame, textvariable=filter_var, state="readonly")
+    filter_menu['values'] = ["All"] + list(set(issue[0] for issue in issues))
     filter_menu.pack(side=tk.LEFT, padx=5)
-    filter_menu.bind("<<ComboboxSelected>>", filter_problemes)
+    filter_menu.bind("<<ComboboxSelected>>", filter_issues)
 
 
 
-    # liste des résultats avec colonne modifiée
-    tree = ttk.Treeview(resultats_fenetre)
-    tree["columns"] = ("Type", "Description", "Trame")
+
+    # List of results with modified column
+    tree = ttk.Treeview(results_window)
+    tree["columns"] = ("Type", "Description", "Frame")
     tree.column("#0", width=0, stretch=tk.NO)
     tree.column("Type", anchor=tk.W, width=120)
     tree.column("Description", anchor=tk.W, width=200)
-    tree.column("Trame", anchor=tk.W, width=400)  # la colonne est plus large pour les trames
-
+    tree.column("Frame", anchor=tk.W, width=400)  # The column is wider for frames
 
 
     tree.heading("#0", text="", anchor=tk.W)
     tree.heading("Type", text="Type", anchor=tk.W)
     tree.heading("Description", text="Description", anchor=tk.W)
-    tree.heading("Trame", text="Trame suspecte", anchor=tk.W)
+    tree.heading("Frame", text="Suspicious Frame", anchor=tk.W)
     tree.pack(fill=tk.BOTH, expand=True)
 
 
 
-
-    for prob in problemes:
-
-        tree.insert("", tk.END, values=prob)
+    for issue in issues:
+        tree.insert("", tk.END, values=issue)
 
 
 
-    # Boutons de sauvegarde
-    boutton_frame = ttk.Frame(resultats_fenetre)
-    boutton_frame.pack(pady=10)
+
+    # Save buttons
+    button_frame = ttk.Frame(results_window)
+    button_frame.pack(pady=10)
     
-    sauvegarder_csv_boutton = tk.Button(boutton_frame, text="Sauvegarder en CSV", 
-                               command=lambda: generer_excel(problemes))
+    save_csv_button = tk.Button(button_frame, text="Save as CSV", 
+                                command=lambda: generate_excel(issues))
     
-
-
-    sauvegarder_csv_boutton.pack(side=tk.LEFT, padx=5)
+    save_csv_button.pack(side=tk.LEFT, padx=5)
     
-
-    sauvegarder_html_boutton = tk.Button(boutton_frame, text="Ouvrir dans le navigateur", 
-                                command=lambda: enregistrer_sous_HTML(problemes))
+    save_html_button = tk.Button(button_frame, text="Open in Browser", 
+                                 command=lambda: save_as_HTML(issues))
     
-
-    sauvegarder_html_boutton.pack(side=tk.LEFT, padx=5)
-
+    save_html_button.pack(side=tk.LEFT, padx=5)
 
 
-# Création de la fenêtre principale
+
+
+
+# Create the main window
 root = tk.Tk()
-root.title("Analyseur TCP")
+root.title("TCP Analyzer")
 
 
-btn = tk.Button(root, text="Charger un fichier", command=chargement_fichier)
+
+btn = tk.Button(root, text="Load a File", command=load_file)
 btn.pack(pady=20)
-
 
 
 

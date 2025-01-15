@@ -1,50 +1,49 @@
 from datetime import datetime
 
-chemin_fichier = "/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 1/evenementSAE_15.ics" 
+file_path = "Questions\Question 1\evenementSAE_15.ics"
 
 
-#on ouvre ici le fichier ics
-def lire_fichier_ics(chemin_fichier):
-    with open(chemin_fichier, 'r', encoding='utf-8') as fichier:
-        return fichier.readlines()
+# Open the ics file here
+def read_ics_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.readlines()
 
 
-def extraire_evenement_ics(contenu_ics):
+def extract_event_from_ics(ics_content):
 
-    evenement = {}
-    for ligne in contenu_ics:
-        if ligne.startswith('UID:'):
-            evenement['uid'] = ligne.split(':', 1)[1].strip()
-        elif ligne.startswith('DTSTART:'):
-            evenement['date_debut'] = ligne.split(':', 1)[1].strip()
-        elif ligne.startswith('DTEND:'):
-            evenement['date_fin'] = ligne.split(':', 1)[1].strip()
-        elif ligne.startswith('SUMMARY:'):
-            evenement['intitule'] = ligne.split(':', 1)[1].strip()
-        elif ligne.startswith('LOCATION:'):
-            evenement['salle'] = ligne.split(':', 1)[1].strip()
-        elif ligne.startswith('DESCRIPTION:'):
-            evenement['description'] = ligne.split(':', 1)[1].strip()
-    return evenement
+    event = {}
+    for line in ics_content:
+        if line.startswith('UID:'):
+            event['uid'] = line.split(':', 1)[1].strip()
+        elif line.startswith('DTSTART:'):
+            event['start_date'] = line.split(':', 1)[1].strip()
+        elif line.startswith('DTEND:'):
+            event['end_date'] = line.split(':', 1)[1].strip()
+        elif line.startswith('SUMMARY:'):
+            event['title'] = line.split(':', 1)[1].strip()
+        elif line.startswith('LOCATION:'):
+            event['room'] = line.split(':', 1)[1].strip()
+        elif line.startswith('DESCRIPTION:'):
+            event['description'] = line.split(':', 1)[1].strip()
+    return event
 
 
+def convert_to_pseudo_csv(event):
 
-def convertir_vers_pseudo_csv(evenement):
+    date = datetime.strptime(event['start_date'][:8], '%Y%m%d').strftime('%d-%m-%Y')
+    start_time = datetime.strptime(event['start_date'][9:15], '%H%M%S').strftime('%H:%M')
+    end_time = datetime.strptime(event['end_date'][9:15], '%H%M%S')
+    start_time_dt = datetime.strptime(event['start_date'][9:15], '%H%M%S')
+    duration = end_time - start_time_dt
+    formatted_duration = f"{duration.seconds // 3600:02}:{(duration.seconds // 60) % 60:02}"
 
-    date = datetime.strptime(evenement['date_debut'][:8], '%Y%m%d').strftime('%d-%m-%Y')
-    heure_debut = datetime.strptime(evenement['date_debut'][9:15], '%H%M%S').strftime('%H:%M')
-    heure_fin = datetime.strptime(evenement['date_fin'][9:15], '%H%M%S')
-    heure_debut_dt = datetime.strptime(evenement['date_debut'][9:15], '%H%M%S')
-    duree = heure_fin - heure_debut_dt
-    duree_formatee = f"{duree.seconds // 3600:02}:{(duree.seconds // 60) % 60:02}"
-
-    groupes = "|".join(evenement['description'].split('\\n')) if 'description' in evenement else "vide"
-    return f"{evenement['uid']};{date};{heure_debut};{duree_formatee};CM;{evenement['intitule']};{evenement['salle']};LACAN DAVID;S1"
+    groups = "|".join(event['description'].split('\\n')) if 'description' in event else "empty"
+    return f"{event['uid']};{date};{start_time};{formatted_duration};CM;{event['title']};{event['room']};LACAN DAVID;S1"
 
 def main():
-    contenu_ics = lire_fichier_ics(chemin_fichier)
-    evenement = extraire_evenement_ics(contenu_ics)
-    pseudo_csv = convertir_vers_pseudo_csv(evenement)
+    ics_content = read_ics_file(file_path)
+    event = extract_event_from_ics(ics_content)
+    pseudo_csv = convert_to_pseudo_csv(event)
     print(pseudo_csv)
 
 if __name__ == "__main__":
