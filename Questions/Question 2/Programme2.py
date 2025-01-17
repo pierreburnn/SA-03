@@ -1,100 +1,100 @@
 import csv
 from datetime import datetime
 
-### CHEMIN DU FICHIER DE MOODLE 
-chemin_fichier_ics = '/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 2/ADE_RT1_Septembre2023_Decembre2023.ics'
-### CHEMMIN DU FICHIER CSV 
-chemin_fichier_csv = '/Users/pierrehiltenbrand/Desktop/SAÉ03/Github/SA-03/Questions/Question 2/Fichier de trie.csv'
+### MOODLE FILE PATH
+ics_file_path = 'Questions/Question 2/ADE_RT1_Septembre2023_Decembre2023.ics'
+### CSV FILE PATH
+csv_file_path = 'Questions/Question 2/Sorting File.csv'
+csv_file_path_in_question3_section = 'Questions/Question 3/Sorting File.csv'
 
 
+### READ THE PREVIOUS FILE
+def read_ics_file(file_path):
+
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.readlines()
 
 
-### ON LIT LE FICHIER PRÉCEDENT 
-def lire_fichier_ics(chemin_fichier):
+def extract_events_from_ics(ics_content):
 
-    with open(chemin_fichier, 'r', encoding='utf-8') as fichier:
-        return fichier.readlines()
+    events = []
+    event = {}
 
+    for line in ics_content:
+        line = line.strip()
+        if line.startswith('BEGIN:VEVENT'):
+            event = {}
 
+        elif line.startswith('UID:'):
+            event['uid'] = line.split(':', 1)[1].strip()
 
-def extraire_evenements_ics(contenu_ics):
+        elif line.startswith('DTSTART:'):
+            event['start_date'] = line.split(':', 1)[1].strip()
 
-    evenements = []
-    evenement = {}
+        elif line.startswith('DTEND:'):
+            event['end_date'] = line.split(':', 1)[1].strip()
 
+        elif line.startswith('SUMMARY:'):
+            event['title'] = line.split(':', 1)[1].strip()
 
-    for ligne in contenu_ics:
-        ligne = ligne.strip()
-        if ligne.startswith('BEGIN:VEVENT'):
-            evenement = {}
+        elif line.startswith('LOCATION:'):
+            event['room'] = line.split(':', 1)[1].strip()
 
-        elif ligne.startswith('UID:'):
-            evenement['uid'] = ligne.split(':', 1)[1].strip()
+        elif line.startswith('DESCRIPTION:'):
+            event['description'] = line.split(':', 1)[1].strip()
 
-        elif ligne.startswith('DTSTART:'):
-            evenement['date_debut'] = ligne.split(':', 1)[1].strip()
+        elif line.startswith('END:VEVENT'):
+            events.append(event)
 
-        elif ligne.startswith('DTEND:'):
-            evenement['date_fin'] = ligne.split(':', 1)[1].strip()
-
-        elif ligne.startswith('SUMMARY:'):
-            evenement['intitule'] = ligne.split(':', 1)[1].strip()
-
-        elif ligne.startswith('LOCATION:'):
-            evenement['salle'] = ligne.split(':', 1)[1].strip()
-
-        elif ligne.startswith('DESCRIPTION:'):
-            evenement['description'] = ligne.split(':', 1)[1].strip()
-
-        elif ligne.startswith('END:VEVENT'):
-            evenements.append(evenement)
-
-    return evenements
+    return events
 
 
+def convert_to_pseudo_csv(event):
 
-def convertir_vers_pseudo_csv(evenement):
+    date = datetime.strptime(event['start_date'][:8], '%Y%m%d').strftime('%d-%m-%Y')
+    start_time = datetime.strptime(event['start_date'][9:15], '%H%M%S').strftime('%H:%M')
+    end_time = datetime.strptime(event['end_date'][9:15], '%H%M%S')
+    start_time_dt = datetime.strptime(event['start_date'][9:15], '%H%M%S')
+    duration = end_time - start_time_dt
+    formatted_duration = f"{duration.seconds // 3600:02}:{(duration.seconds // 60) % 60:02}"
 
-    date = datetime.strptime(evenement['date_debut'][:8], '%Y%m%d').strftime('%d-%m-%Y')
-    heure_debut = datetime.strptime(evenement['date_debut'][9:15], '%H%M%S').strftime('%H:%M')
-    heure_fin = datetime.strptime(evenement['date_fin'][9:15], '%H%M%S')
-    heure_debut_dt = datetime.strptime(evenement['date_debut'][9:15], '%H%M%S')
-    duree = heure_fin - heure_debut_dt
-    duree_formatee = f"{duree.seconds // 3600:02}:{(duree.seconds // 60) % 60:02}"
-
-    groupes = "|".join(evenement['description'].split('\\n')) if 'description' in evenement else "vide"
-    salle = evenement.get('salle', 'vide').replace('\\,', '|')
+    groups = "|".join(event['description'].split('\\n')) if 'description' in event else "empty"
+    room = event.get('room', 'empty').replace('\\,', '|')
 
     return [
-        evenement['uid'], 
+        event['uid'], 
         date, 
-        heure_debut, 
-        duree_formatee, 
+        start_time, 
+        formatted_duration, 
         "CM",  
-        evenement['intitule'], 
-        salle, 
-        "vide",  
-        groupes
+        event['title'], 
+        room, 
+        "empty",  
+        groups
     ]
 
 
-### ON EXECUTE LES FONCTIONS ET L'ON MET LE RETURN DANS LA VARIBALE 
-contenu_ics = lire_fichier_ics(chemin_fichier_ics)
-evenements = extraire_evenements_ics(contenu_ics)
-tableau_pseudo_csv = [convertir_vers_pseudo_csv(e) for e in evenements]
+### EXECUTE FUNCTIONS AND STORE THE RETURN IN THE VARIABLE
+ics_content = read_ics_file(ics_file_path)
+events = extract_events_from_ics(ics_content)
+pseudo_csv_table = [convert_to_pseudo_csv(e) for e in events]
 
 
-### ON TRIE LES ÉVENTS PAR DATE ET HEURE
-tableau_pseudo_csv.sort(key=lambda x: (x[1], x[2]))
+### SORT EVENTS BY DATE AND TIME
+pseudo_csv_table.sort(key=lambda x: (x[1], x[2]))
 
 
-### ON OUVRE OU CRÉER LE FICHIER CSC AVEC "mode = 'w' " ET ON CRÉÉ LES DIFÉRENTES COLLONNES 
-with open(chemin_fichier_csv, mode='w', newline='', encoding='utf-8') as fichier_csv:
+### OPEN OR CREATE THE CSV FILE WITH "mode = 'w'" AND CREATE THE DIFFERENT COLUMNS
+with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
 
-    writer = csv.writer(fichier_csv, delimitation=';') #quand dans le code il y'a une point virgule on change de ligne, on passe à la suivante
-    writer.writerow(["UID", "Date", "Heure Début", "Durée", "Modalité", "Intitulé", "Salle", "Professeurs", "Groupes"])
-    writer.writerows(tableau_pseudo_csv)
+    writer = csv.writer(csv_file, delimiter=';') # when a semicolon is found in the code, we change line, move to the next
+    writer.writerow(["UID", "Date", "Start Time", "Duration", "Mode", "Title", "Room", "Professors", "Groups"])
+    writer.writerows(pseudo_csv_table)
 
-print(tableau_pseudo_csv)
+with open(csv_file_path_in_question3_section, mode='w', newline='', encoding='utf-8') as csv_file:
+    writer = csv.writer(csv_file, delimiter=';')
+    writer.writerow(["UID", "Date", "Start Time", "Duration", "Mode", "Title", "Room", "Professors", "Groups"])
+    writer.writerows(pseudo_csv_table)
 
 
+print(pseudo_csv_table)
