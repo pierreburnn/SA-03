@@ -1,7 +1,3 @@
-re
-tkinter
 matplotlib
 pandas
-webbrowser
-os
 markdown
