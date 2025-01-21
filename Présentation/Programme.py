@@ -1,12 +1,13 @@
 import re
-import tkinter as tk
-from tkinter import filedialog, messagebox
-from tkinter import ttk
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pandas as pd
+import tkinter as tk
+from tkinter import ttk, messagebox
+from tkinter.filedialog import askopenfilename, asksaveasfilename
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 import webbrowser
 import os
+from datetime import datetime
 import markdown
 
 
@@ -15,313 +16,353 @@ import markdown
 
 
 
-### ANALYZE TCP DUMP FILE ###
-def analyze_file(file_content):
-    
-    issues = []
-    packet_counts = {
-        "DNS NXDomain": 0,
-        "Suspicious SYN": 0,
-        "Repeated Payload": 0,
-        "Total Packets": 0
+def parse_text_file_to_dataframe(file_path):
+
+
+    main_info_pattern = re.compile(
+        r"(?P<timestamp>\d{2}:\d{2}:\d{2}\.\d+)\s+IP\s+(?P<src>[\w\.\-]+)\.(?P<src_port>\w+)\s+>\s+(?P<dst>[\w\.\-]+)\.(?P<dst_port>\w+):\s+Flags\s+\[(?P<flags>[^\]]+)\],\s+seq\s+(?P<seq>[0-9:]+),\s+ack\s+(?P<ack>\d+),\s+win\s+(?P<win>\d+),\s+.*length\s+(?P<length>\d+)"
+    )
+
+    with open(file_path, "r") as file:
+        file_content = file.read()
+
+    rows = []
+    for match in main_info_pattern.finditer(file_content):
+        rows.append(match.groupdict())
+
+    df = pd.DataFrame(rows)
+    return df
+
+
+
+
+def plot_packet_frequency(df, frame):
+
+
+    df_copy = df.copy()
+    df_copy['timestamp'] = pd.to_datetime(df_copy['timestamp'], format='%H:%M:%S.%f')
+    df_copy.set_index('timestamp', inplace=True)
+    packet_frequency = df_copy.resample('S').size()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(packet_frequency.index, packet_frequency.values, marker='o', linestyle='-')
+    ax.set_title('Packet Frequency Over Time')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Number of Packets')
+    ax.grid(True)
+
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+
+
+
+
+def plot_ip_traffic_pie_chart(df, frame):
+
+    ip_traffic = df['src'].value_counts() + df['dst'].value_counts()
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.pie(ip_traffic, labels=ip_traffic.index, autopct='%1.1f%%', startangle=90)
+    ax.set_title('IP Traffic Distribution')
+    ax.axis('equal')
+
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+
+
+
+def plot_tcp_flags(df, frame):
+    """
+    Plot a bar chart showing the frequency of TCP flags with their full names.
+    """
+
+    flag_translations = {
+        '.': 'No Flags',
+        'S': 'SYN (Synchronize)',
+        'P': 'PSH (Push)',
+        'F': 'FIN (Finish)',
+        'R': 'RST (Reset)',
+        'A': 'ACK (Acknowledgment)',
+        'U': 'URG (Urgent)',
+        'E': 'ECE (ECN-Echo)',
+        'W': 'CWR (Congestion Window Reduced)'
     }
 
 
 
-
-    ### COUNT TOTAL PACKETS ###
-    all_packets_pattern = re.compile(r"^\d+", re.MULTILINE)
-    all_packets = all_packets_pattern.findall(file_content)
-    packet_counts["Total Packets"] = len(all_packets)
-
-
-
-
-    ### SEARCH SUSPICIOUS PACKETS ###
-    dns_frames = list(set(re.findall(r".*NXDomain.*", file_content, re.MULTILINE)))
-    syn_frames = list(set(re.findall(r"IP \S+ > \S+\.http: Flags \[S\].*?", file_content)))
-    repeated_frames = list(set(re.findall(r".*5858 5858.*", file_content)))
+    # Split the flags string and count occurrences
+    flag_counts = {}
+    for flags in df['flags']:
+        for flag in flags.split():
+            full_name = flag_translations.get(flag, flag)
+            if full_name in flag_counts:
+                flag_counts[full_name] += 1
+            else:
+                flag_counts[full_name] = 1
 
 
 
 
-    ### UPDATE PACKET COUNTS ###
-    packet_counts["DNS NXDomain"] = len(dns_frames)
-    packet_counts["Suspicious SYN"] = len(syn_frames)
-    packet_counts["Repeated Payload"] = len(repeated_frames)
-
-
-
-
-
-    ### STORE FRAME DETAILS ###
-    for frame in dns_frames:
-        issues.append(["DNS Error", "DNS Resolution Failed", frame])
-
-    for frame in syn_frames:
-        issues.append(["SYN Flag", "Suspicious SYN Connection", frame])
-        
-    for frame in repeated_frames:
-        issues.append(["Repetition", "Repeated Payload Data", frame])
-
-    return issues, packet_counts
-
-
-
-
-### GENERATE EXCEL REPORT ###
-def generate_excel(issues):
-
-
-    path = filedialog.asksaveasfilename(defaultextension=".csv", 
-                                        filetypes=[("CSV files", "*.csv")])
+    fig, ax = plt.subplots(figsize=(12, 6))
+    bars = ax.bar(flag_counts.keys(), flag_counts.values())
+    ax.set_title('TCP Flags Distribution')
+    ax.set_xlabel('Flags')
+    ax.set_ylabel('Frequency')
     
 
-    if path:
 
-        try:
-
-            df = pd.DataFrame(issues, columns=["Type", "Description", "Frame"])
-            df.to_csv(path, index=False, sep=';', encoding='utf-8-sig')
-            messagebox.showinfo("Success", "Results saved into a CSV file.")
+    plt.xticks(rotation=45, ha='right')
+    
 
 
-        except Exception as e:
-            messagebox.showerror("Error", f"Unable to save the file: {e}")
+    # Add value labels on top of each bar
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{int(height)}',
+                ha='center', va='bottom')
 
 
+    plt.tight_layout()
 
 
-### GENERATE HTML REPORT ###
-def save_as_HTML(issues):
-
-
-
-    markdown_content = "# TCP Analysis Results\n\n"
-    markdown_content += "| Type | Description | Frame |\n"
-    markdown_content += "| ---  | ---         | ---   |\n"
-
-
-
-    for issue in issues:
-
-        markdown_content += f"| {issue[0]} | {issue[1]} | {issue[2]} |\n"
-
-    html_converted_content = markdown.markdown(markdown_content, extensions=['tables'])
-
-
-
-    counts = {"DNS NXDomain": 0, "Suspicious SYN": 0, "Repeated Payload": 0}
-
-
-    for i in issues:
-
-        if i[0] == "DNS Error":
-            counts["DNS NXDomain"] += 1
-
-        elif i[0] == "SYN Flag":
-
-            counts["Suspicious SYN"] += 1
-
-
-        elif i[0] == "Repetition":
-
-            counts["Repeated Payload"] += 1
-
-    counts["Total Packets"] = sum(counts.values())
+    canvas = FigureCanvasTkAgg(fig, master=frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
 
 
 
 
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.bar(counts.keys(), counts.values(), color='skyblue')
-    ax.set_title("Packet Distribution")
-    ax.set_xlabel("Issue Types")
-    ax.set_ylabel("Number of Packets")
-    plt.xticks(rotation=0)
+def generate_markdown_and_html_report(df):
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 1) Construction du contenu en Markdown
+    md_content = []
+    md_content.append("# Network Traffic Analysis Report\n")
+    md_content.append(f"**Generated on**: {timestamp}\n\n")
+    md_content.append("---\n\n")
+
+
+
+    # Overview
+    md_content.append("## Overview\n\n")
+    md_content.append(f"- **Total packets captured**: {len(df)}\n")
+    md_content.append(f"- **Unique source IPs**: {df['src'].nunique()}\n")
+    md_content.append(f"- **Unique destination IPs**: {df['dst'].nunique()}\n\n")
+
+
+
+    # Most Active IPs
+    md_content.append("## Most Active IPs\n\n")
+    md_content.append("### Top Source IPs\n\n")
+    md_content.append(df['src'].value_counts().head().to_frame().to_markdown())
+    md_content.append("\n\n### Top Destination IPs\n\n")
+    md_content.append(df['dst'].value_counts().head().to_frame().to_markdown())
+    md_content.append("\n\n")
 
 
 
 
-    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-    bar_chart_filename = "bar_chart.png"
-    bar_chart_full_path = os.path.join(desktop_path, bar_chart_filename)
-    fig.savefig(bar_chart_full_path)
-    plt.close(fig)
+    # TCP Flags Distribution
+    md_content.append("## TCP Flags Distribution\n\n")
+    md_content.append(df['flags'].value_counts().to_frame().to_markdown())
+    md_content.append("\n\n")
 
 
 
-    final_html_content = f"""
+    # Port Analysis
+    md_content.append("## Port Analysis\n\n")
+    md_content.append("### Most Common Source Ports\n\n")
+    md_content.append(df['src_port'].value_counts().head().to_frame().to_markdown())
+    md_content.append("\n\n### Most Common Destination Ports\n\n")
+    md_content.append(df['dst_port'].value_counts().head().to_frame().to_markdown())
+    md_content.append("\n\n")
 
-    <html>
-    <head>
-        <title>TCP Analysis</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            table {{ border-collapse: collapse; width: 100%; }}
-            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-            th {{ background-color: #4CAF50; color: white; }}
-            tr:nth-child(even) {{ background-color: #f2f2f2; }}
-            h1 {{ color: #4CAF50; }}
-        </style>
-    </head>
-    <body>
 
-        {html_converted_content}
-        <h2>Bar Chart (Packet Distribution)</h2>
-        <img src="{bar_chart_filename}" alt="Bar Chart" width="400" />
 
-    </body>
-    </html>
+
+    # Full Data Table
+    md_content.append("## Full Data Table\n\n")
+    md_content.append(df.to_markdown())
+    md_content.append("\n")
+
+    md_content = "\n".join(md_content)
+
+    body_html = markdown.markdown(md_content, extensions=['tables'])
+
+    css_style = """
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      h1, h2, h3 {
+        color: #2c3e50;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #2980b9;
+        color: #fff;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      code {
+        background-color: #f4f4f4;
+        padding: 2px 4px;
+      }
+    </style>
     """
 
+    html_content = f"""<!DOCTYPE html>
 
-    path = os.path.join(os.path.expanduser("~"), "Desktop", "tcp_analysis.html")
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Network Analysis Report</title>
+  {css_style}
+</head>
+<body>
+{body_html}
+</body>
+</html>
+"""
 
-    with open(path, 'w', encoding='utf-8') as f:
 
-        f.write(final_html_content)
+    report_path = os.path.join(os.path.expanduser('~'), 'network_analysis_report.html')
+    with open(report_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
 
-
-    webbrowser.open('file://' + path)
-
-
+    return report_path
 
 
 
-### LOAD AND ANALYZE FILE ###
-def load_file():
 
-    path = filedialog.askopenfilename()
 
-    if path:
+def display_dataframe(df):
 
+    root = tk.Tk()
+    root.title("Packet Analysis - Multi-Capture View")
+
+
+    frame_top = tk.Frame(root)
+    frame_top.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+
+    frame_bottom = tk.Frame(root)
+    frame_bottom.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+
+
+    tree = ttk.Treeview(frame_top, columns=list(df.columns), show="headings")
+    for col in df.columns:
+        tree.heading(col, text=col)
+        tree.column(col, width=150)
+    
+
+
+    for _, row in df.iterrows():
+        tree.insert("", "end", values=list(row))
+    
+
+
+    scrollbar = ttk.Scrollbar(frame_top, orient=tk.VERTICAL, command=tree.yview)
+    tree.configure(yscroll=scrollbar.set)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    tree.pack(expand=True, fill=tk.BOTH)
+
+
+
+
+    # Create button frame
+    button_frame = tk.Frame(root)
+    button_frame.pack(side=tk.BOTTOM, pady=5)
+
+
+
+
+
+    # Define current view index
+    views = [plot_packet_frequency, plot_ip_traffic_pie_chart, plot_tcp_flags]
+    current_view = [0]  # Use a list to allow modification within nested functions
+
+
+
+    def show_next_plot():
+        # Clear existing widgets in frame_bottom
+        for widget in frame_bottom.winfo_children():
+            widget.destroy()
+        # Switch to the next view
+        current_view[0] = (current_view[0] + 1) % len(views)
+        views[current_view[0]](df, frame_bottom)
+
+
+
+
+    def export_to_csv():
+        """
+        Export the DataFrame to a CSV file.
+        """
+        export_file_path = asksaveasfilename(
+            defaultextension='.csv',
+            filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")],
+            title="Export data as CSV"
+        )
+        if export_file_path:
+            df.to_csv(export_file_path, index=False, sep=';', encoding='utf-8')
+            tk.messagebox.showinfo("Success", "Data exported successfully!")
+
+
+
+    def open_markdown_html_report():
+        """
+        Génère et ouvre le rapport HTML (issu du Markdown).
+        """
         try:
-            with open(path, 'r') as f:
-                content = f.read()
-
-                results, _ = analyze_file(content)
-                display_results(results, content)
-
-
+            report_path = generate_markdown_and_html_report(df)
+            webbrowser.open('file://' + os.path.abspath(report_path))
         except Exception as e:
-
-            print("Error:", e)
-
+            messagebox.showerror("Error", f"Failed to generate report: {str(e)}")
 
 
 
 
-### DISPLAY ANALYSIS RESULTS ###
-def display_results(issues, file_content):
-
-    results_window = tk.Toplevel()
-    results_window.title("Analysis Results")
+    # Create button frame with all buttons side by side
+    button_frame = tk.Frame(root)
+    button_frame.pack(side=tk.BOTTOM, pady=5)
 
 
 
-    def filter_issues(event):
-
-        selected_type = filter_var.get()
-
-        for row in tree.get_children():
-            tree.delete(row)
-
-
-
-        for issue in issues:
-
-            if selected_type == "All" or issue[0] == selected_type:
-                tree.insert("", tk.END, values=issue)
-
-
-
-    filter_frame = ttk.Frame(results_window)
-    filter_frame.pack(fill=tk.X, padx=10, pady=5)
-
-
-    ttk.Label(filter_frame, text="Filter by issue type:").pack(side=tk.LEFT, padx=5)
-    filter_var = tk.StringVar(value="All")
-
-
-    filter_menu = ttk.Combobox(filter_frame, textvariable=filter_var, state="readonly")
-    filter_menu['values'] = ["All"] + list(set(issue[0] for issue in issues))
-
-
-    filter_menu.pack(side=tk.LEFT, padx=5)
-    filter_menu.bind("<<ComboboxSelected>>", filter_issues)
-
-
-
-
-    tree = ttk.Treeview(results_window)
-    tree["columns"] = ("Type", "Description", "Frame")
-    tree.column("#0", width=0, stretch=tk.NO)
-    tree.column("Type", anchor=tk.W, width=120)
-    tree.column("Description", anchor=tk.W, width=200)
-    tree.column("Frame", anchor=tk.W, width=400)
-
-
-    tree.heading("#0", text="", anchor=tk.W)
-    tree.heading("Type", text="Type", anchor=tk.W)
-    tree.heading("Description", text="Description", anchor=tk.W)
-    tree.heading("Frame", text="Suspicious Frame", anchor=tk.W)
-    tree.pack(fill=tk.BOTH, expand=True)
-
-
-
-
-
-    for issue in issues:
-
-        tree.insert("", tk.END, values=issue)
-
-
-
-    button_frame = ttk.Frame(results_window)
-    button_frame.pack(pady=10)
-
-
-    save_csv_button = tk.Button(button_frame, text="Save as CSV", 
-                                command=lambda: generate_excel(issues))
+    # Add buttons
+    next_button = tk.Button(button_frame, text="Switch View", command=show_next_plot)
+    next_button.pack(side=tk.LEFT, padx=5)
     
-    save_csv_button.pack(side=tk.LEFT, padx=5)
-
-
-    save_html_button = tk.Button(button_frame, text="Open in Browser", 
-                                 command=lambda: save_as_HTML(issues))
+    export_button = tk.Button(button_frame, text="Export to CSV", command=export_to_csv)
+    export_button.pack(side=tk.LEFT, padx=5)
     
-    save_html_button.pack(side=tk.LEFT, padx=5)
+    report_button = tk.Button(button_frame, text="View Report On Browser", command=open_markdown_html_report)
+    report_button.pack(side=tk.LEFT, padx=5)
+
+
+    # Initial plot
+    views[current_view[0]](df, frame_bottom)
 
 
 
-    _, counts = analyze_file(file_content)  
-
-
-
-    fig = plt.Figure(figsize=(14, 4), dpi=100)
-    ax = fig.add_subplot(111)
-
-
-    ax.bar(counts.keys(), counts.values(), color=['purple', 'red', 'blue', 'green'])
-    ax.set_title("Packet Distribution")
-    ax.set_xlabel("Issue Types")
-    ax.set_ylabel("Number of Packets")
-    ax.tick_params(axis='x', rotation=0)
-
-
-
-    ### Added value labels on bars ###
-    for i, value in enumerate(counts.values()):
-
-        ax.text(i, value + 0.5, str(value), ha='center', va='bottom')
-
-
-
-    canvas = FigureCanvasTkAgg(fig, master=results_window)
-    canvas.draw()
-    canvas.get_tk_widget().pack(pady=10)
+    root.mainloop()
 
 
 
@@ -329,16 +370,15 @@ def display_results(issues, file_content):
 
 
 
-### MAIN APPLICATION ###
-root = tk.Tk()
-root.title("TCP Packet Analyzer")
+if __name__ == "__main__":
+    file_path = askopenfilename(title="Select the text file with captures",
+                                filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+    
+
+    if file_path:
+        packet_df = parse_text_file_to_dataframe(file_path)
+        display_dataframe(packet_df)
 
 
-
-btn = tk.Button(root, text="Load a File", command=load_file)
-btn.pack(pady=20)
-
-
-
-
-root.mainloop()
+    else:
+        print("No file selected")
