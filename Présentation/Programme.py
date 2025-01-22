@@ -139,7 +139,7 @@ def generate_markdown_and_html_report(df):
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 1) Construction du contenu en Markdown
+    # Construction du contenu en Markdown
     md_content = []
     md_content.append("# Network Traffic Analysis Report\n")
     md_content.append(f"**Generated on**: {timestamp}\n\n")
@@ -147,7 +147,6 @@ def generate_markdown_and_html_report(df):
 
 
 
-    # Overview
     md_content.append("## Overview\n\n")
     md_content.append(f"- **Total packets captured**: {len(df)}\n")
     md_content.append(f"- **Unique source IPs**: {df['src'].nunique()}\n")
@@ -155,7 +154,7 @@ def generate_markdown_and_html_report(df):
 
 
 
-    # Most Active IPs
+    # Les adresse IP les plus actives
     md_content.append("## Most Active IPs\n\n")
     md_content.append("### Top Source IPs\n\n")
     md_content.append(df['src'].value_counts().head().to_frame().to_markdown())
@@ -166,14 +165,14 @@ def generate_markdown_and_html_report(df):
 
 
 
-    # TCP Flags Distribution
+    # TCP Flags distribution
     md_content.append("## TCP Flags Distribution\n\n")
     md_content.append(df['flags'].value_counts().to_frame().to_markdown())
     md_content.append("\n\n")
 
 
 
-    # Port Analysis
+    # Analyse des ports
     md_content.append("## Port Analysis\n\n")
     md_content.append("### Most Common Source Ports\n\n")
     md_content.append(df['src_port'].value_counts().head().to_frame().to_markdown())
@@ -313,9 +312,7 @@ def display_dataframe(df):
 
 
     def export_to_csv():
-        """
-        Export the DataFrame to a CSV file.
-        """
+ 
         export_file_path = asksaveasfilename(
             defaultextension='.csv',
             filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")],
@@ -323,14 +320,12 @@ def display_dataframe(df):
         )
         if export_file_path:
             df.to_csv(export_file_path, index=False, sep=';', encoding='utf-8')
-            tk.messagebox.showinfo("Success", "Data exported successfully!")
+            tk.messagebox.showinfo("Success", "Data exported successfully !")
 
 
 
     def open_markdown_html_report():
-        """
-        Génère et ouvre le rapport HTML (issu du Markdown).
-        """
+
         try:
             report_path = generate_markdown_and_html_report(df)
             webbrowser.open('file://' + os.path.abspath(report_path))
